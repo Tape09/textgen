@@ -10,10 +10,14 @@ import numpy as np
 import time;
 from tqdm import tqdm
 import sys
+import math
+import glob
+import os
 
-chars = [' ', '!', '"',"'", '&', '(', ')', '*', ',', '-', '.', ':', ';', '?', '[', ']', '_', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
-for i in range(10):
-	chars.append(str(i));
+# chars = [' ', '!', '"',"'", '&', '(', ')', '*', ',', '-', '.', ':', ';', '?', '[', ']', '_', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+chars = [' ', '!', '"',"'", ',', '-', '.', ':', ';', '?', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+# for i in range(10):
+	# chars.append(str(i));
 	
 char_to_vec = dict();
 
@@ -23,6 +27,8 @@ for i,c in enumerate(chars):
 def create_model(batch_size = 1):
 	model = Sequential()
 	model.add(LSTM(256, batch_input_shape=(batch_size,1,len(chars)),stateful=True, return_sequences = True))
+	model.add(Dropout(0.2))
+	model.add(LSTM(256,stateful=True,return_sequences = True))
 	model.add(Dropout(0.2))
 	model.add(LSTM(256,stateful=True,return_sequences = True))
 	model.add(Dropout(0.2))
@@ -48,21 +54,25 @@ def vec_to_char(vec):
 print("Reading books");
 	
 # load ascii text and covert to lowercase
-filename = "data/tom_sawyer.txt"
-book = read_book(filename);
+books = [];
+
+filenames = glob.glob("data/*.txt")
+for filename in filenames:
+	books.append(read_book(filename));
 
 
-savefile_name = time.strftime("%Y%m%d-%H%M%S");
-books = [book];
+savefile_name = time.strftime("%Y%m%d-%H%M");
 
 print("Building model")
-n_batches = 16;
+n_batches = 256;
 letters_per_seq = 1000;
 model = create_model(n_batches);
 	
 # sys.exit()
 	
-n_epochs = 2;
+n_epochs = 120;
+
+loss = [];
 for epoch in range(n_epochs):
 	print("Epoch:",epoch+1,"/",n_epochs)
 	# mean_tr_acc = []
@@ -71,7 +81,7 @@ for epoch in range(n_epochs):
 		print("\tbook:",b+1,"/",len(books))
 		
 		book_len = len(books[b])
-		krange = int(len(book) / (n_batches * letters_per_seq))
+		krange = int(math.ceil(len(books[b]) / (n_batches * letters_per_seq)))
 		for k in tqdm(range(krange)):
 			# print("\t\tstartpoint:",k+1,"/",krange)	
 			starts = [np.random.randint(book_len-letters_per_seq) for i in range(n_batches)]
@@ -86,21 +96,11 @@ for epoch in range(n_epochs):
 				mean_tr_loss.append(tr_loss)
 				
 			model.reset_states()
-			model.save(savefile_name+"_temp.hdf5")
+			# model.save(savefile_name+"_temp.hdf5")
+	
+	loss.append(np.mean(mean_tr_loss));
+	model.save(savefile_name+"_"+str(epoch)+".hdf5")
 		
-	model.save(savefile_name+str(round(tr_loss*100)/100)+".hdf5")
-		
-		
-		# for i in tqdm(range(len(books[b])-1)):
-			# x = np.zeros((n_batches,1,len(chars)))
-			# x[0,0] = books[b][starts[0]+i]
-			# # print(books[b][i])
-			# # print(books[b][i+1])
-			# tr_loss = model.train_on_batch(books[b][i], books[b][i+1]);
-			# # mean_tr_acc.append(tr_acc)
-			# mean_tr_loss.append(tr_loss)
-		# model.reset_states()
-		# model.save(savefile_name+str(round(tr_loss*100)/100)+".h5")
-		
-model.save("trained_"+savefile_name+".h5")
 
+model.save("trained_"+savefile_name+".h5")
+np.save("loss_"+savefile_name+".npy",loss)

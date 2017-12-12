@@ -12,9 +12,12 @@ from tqdm import tqdm
 import sys
 
 
-chars = [' ', '!', '"',"'", '&', '(', ')', '*', ',', '-', '.', ':', ';', '?', '[', ']', '_', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
-for i in range(10):
-	chars.append(str(i));
+# chars = [' ', '!', '"',"'", '&', '(', ')', '*', ',', '-', '.', ':', ';', '?', '[', ']', '_', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+# for i in range(10):
+	# chars.append(str(i));
+	
+chars = [' ', '!', '"',"'", ',', '-', '.', ':', ';', '?', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+
 	
 char_to_vec = dict();
 
@@ -40,18 +43,22 @@ def vec_to_char(vec,top_n = 1):
 def load_model(filename):
 	return keras.models.load_model(filename);
 
-def generate(model,n,seed=". ", top_n = 1):
+def generate(model,n,seed=". ", top_n = 1, include_seed = True):
 	batch_size = model.inputs[0].get_shape().as_list()[0];
 	model.reset_states();
 	for c in seed:
-		y = model.predict(np.repeat(char_to_vecc(c),batch_size,axis=0));
+		y = model.predict(np.repeat(char_to_vecc(c),batch_size,axis=0),batch_size=batch_size);
 		
 	next_char = vec_to_char(y[0],top_n);
-	word = "" + next_char;
+	if(include_seed):
+		word = seed + next_char;
+	else:
+		word = "" + next_char;
+		
 	for i in range(n):
 		# c = vec_to_char(y[0],top_n);
 		y = np.repeat(char_to_vecc(next_char),batch_size,axis=0)
-		y = model.predict(y);
+		y = model.predict(y,batch_size=batch_size);
 		next_char = vec_to_char(y[0],top_n);
 		word += next_char;
 		
