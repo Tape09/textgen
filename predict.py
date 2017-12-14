@@ -65,11 +65,43 @@ def generate(model,n,seed=". ", top_n = 1, include_seed = True):
 	return word;
 	
 	
+def prob_dict(y):
+	d = dict();
+	for i in range(y.shape[1]):
+		d[chars[i]] = round(y[0,i],3);
+	return d;
+	
 filename = sys.argv[1];
 model = load_model(filename);
 
 
-	
+def gen(seed, n, top_n = 5, include_seed = False, return_probs = False):
+	batch_size = model.inputs[0].get_shape().as_list()[0];
+	model.reset_states();
+	seed = seed.lower();
+	for c in seed:
+		y = model.predict(np.repeat(char_to_vecc(c),batch_size,axis=0),batch_size=batch_size);
+		
+	probs = [];
+	probs.append(prob_dict(y[0]));
+	next_char = vec_to_char(y[0],top_n);
+	if(include_seed):
+		word = seed + next_char;
+	else:
+		word = "" + next_char;
+		
+	for i in range(n):
+		# c = vec_to_char(y[0],top_n);
+		y = np.repeat(char_to_vecc(next_char),batch_size,axis=0)
+		y = model.predict(y,batch_size=batch_size);
+		probs.append(prob_dict(y[0]));
+		next_char = vec_to_char(y[0],top_n);
+		word += next_char;
+		
+	if return_probs:
+		return word,probs;
+	else:
+		return word
 	
 	
 	
