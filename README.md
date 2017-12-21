@@ -5,6 +5,7 @@ Tensorflow (versioin 1.3.0)
 Usage:
 
 Training:
+
 	python train.py
 	
 This will use all files in "data/*.txt" for training. 
@@ -12,6 +13,7 @@ Adjust number of training epochs inside the file.
 Will output a file "trained_<timestamp>.h5" when finished, as well as a file every epoch.
 	
 Prediction:
+
 	python -i predict.py <path to trained file>
 	
 This will open python in interactive mode and load the provided model. 
